@@ -2,6 +2,7 @@ from requests import get
 from requests.exceptions import ConnectionError
 from paho.mqtt.client import Client as mqtt
 from paho.mqtt.publish import multiple as publish_multiple
+from socket import gaierror
 
 import schedule
 import time
@@ -115,20 +116,23 @@ def send_updates(updates, mqtt_config=get_mqtt_config()):
     time.sleep(4)
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
+
     
 def send_multiple_updates(updates, mqtt_config=get_mqtt_config()):
     msgs = [{'topic': path, 'payload': status} for path, status in updates]
 
     # TODO - Need to handle no auth
-    publish_multiple(
-        msgs,
-        auth={'username': mqtt_config['username'], 'password': mqtt_config['password']},
-        hostname=mqtt_config['hostname']
-    )
+    try:
+        publish_multiple(
+            msgs,
+            auth={'username': mqtt_config['username'], 'password': mqtt_config['password']},
+            hostname=mqtt_config['hostname']
+        )
+    except gaierror:
+        print(f"socket.gaierror in publish_multiple on: {mqtt_config['hostname']}")
+    
 
 def job():
-    print('Called Job')
-
     mqtt_config = get_mqtt_config()
     env_config = get_env_config()
 
